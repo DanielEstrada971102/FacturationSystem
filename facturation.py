@@ -1,39 +1,70 @@
-from tkinter import Tk, Frame, Label, Entry, Button, Text, ttk, StringVar, DoubleVar, messagebox, Scrollbar, END, INSERT
-import numpy as np
+from factura import *
+from tkinter import *
+from tkinter import ttk
+from glob import glob
+from tkinter import messagebox
+from datetime import datetime
+from numpy import array
+from csv import reader
 
 
-productList = ["Mango", "Papaya", "Melon"]
+productList =[]
 
-class Facturar():
-    def __init__(self, root):
-        self.root =root
+with open("Base_de_datos/Productos/Productos.csv", 'r') as f:
+    file = reader(f)
+    for row in file:
+        productList.append(row) 
+
+productList = array(productList)
+
+customerList =[]
+
+with open("Base_de_datos/Clientes/Clientes.csv", 'r') as f:
+    file = reader(f)
+    for row in file:
+        customerList.append(row) 
+
+customerList = array(customerList)
+
+
+class Facturar(object):
+
+    def __init__(self, master):
+
+        self.DATE = datetime.now() 
+        self.root = master
+        self.factura = Bill()
 
         self.subFrame1 = Frame(self.root)
         self.subFrame2 = Frame(self.root)
         self.facFrame = Frame(self.root)
         self.subFrame3 = Frame(self.root)
         # ------------Variables de control-------------
-        self.quantity = DoubleVar(value=0)
+        self.date = StringVar(value=self.DATE.strftime("%d/%m/%Y"))
+        self.Numb = StringVar(value=str(len(glob("Base_de_datos/facturas/*.fact"))))
+        self.customerName = StringVar()
+
+        self.amount = DoubleVar()
         self.product = StringVar()
-        self.price = DoubleVar(value=0)
-        self.subTotal = DoubleVar(value=0)
+        self.price = IntVar()
+        self.subTotal = DoubleVar()
+
         self.total = DoubleVar(value=0)
         self.prevBalance = DoubleVar(value=0)
         self.payment = DoubleVar(value=0)
         self.finBalance = DoubleVar(value=0)
-        self.facArray=[]
-
-        self.rowCount = 0
 
         # -----------------subFrame1------------------
         self.dateLabel = Label(self.subFrame1, text="Fecha:", font=(14))
-        self.dataEntry = Entry(self.subFrame1, justify="center")
+        self.dataEntry = Entry(self.subFrame1, justify="center", textvariable=self.date)
 
         self.facNumbLabel = Label(self.subFrame1, text="N°:", font=(14))
-        self.facNumbEntry = Entry(self.subFrame1, justify="center")
+        self.facNumbEntry = Entry(self.subFrame1, justify="center", textvariable=self.Numb, state="disable")
 
         self.nameLabel = Label(self.subFrame1, text="Nombre:", font=(14))
-        self.nameEntry = Entry(self.subFrame1, justify="center")
+        self.nameEntry = ttk.Combobox(
+            self.subFrame1, justify="center", values=customerList[1:,0], textvariable=self.customerName)
+
         # -----------------subFrame2-------------------
         Label(self.subFrame2, text="Cantidad", font=(14),
               bg="gray").grid(row=0, column=0, padx=15, pady=10)
@@ -44,31 +75,31 @@ class Facturar():
         Label(self.subFrame2, text="Subtotal", font=(14),
               bg="gray").grid(row=0, column=3, padx=15, pady=10)
 
-        self.quantityEntry = Entry(
-            self.subFrame2, justify="center", textvariable=self.quantity)
+        self.amountEntry = Entry(
+            self.subFrame2, justify="center", textvariable=self.amount)
         self.productEntry = ttk.Combobox(
-            self.subFrame2, justify="center", values=productList, textvariable=self.product)
+            self.subFrame2, justify="center", values=productList[1:,0], textvariable=self.product)
         self.priceEntry = Entry(
             self.subFrame2, justify="center", textvariable=self.price)
         self.subTotalEntry = Entry(
             self.subFrame2, justify="center", state="disabled", textvariable=self.subTotal)
 
-        self.quantity.trace('w', self.calSubTotal)
+        self.amount.trace('w', self.calSubTotal)
         self.price.trace('w', self.calSubTotal)
 
-        self.addButton = Button(self.subFrame2, text="+", command=self.addFac)
-        self.lessButton = Button(self.subFrame2, text="-",command=self.lessFac)
+        self.addButton = Button(self.subFrame2, text="+", command=self.add)
+        self.lessButton = Button(self.subFrame2, text="-",command=self.delete)
 
         # -----------------facFrame---------------------
         self.facText = Text(self.facFrame, height=10)
         self.Scrollfac = Scrollbar(self.facFrame, command=self.facText.yview)
         self.facText.config(yscrollcommand = self.Scrollfac.set)
-        
+
         # -----------------subFrame3---------------------
         self.cancelButton = Button(self.subFrame3, text="Cancelar",
-                                   command=self.cancelFac)
+                                   command= lambda: self.root.destroy())
         self.saveButton = Button(self.subFrame3, text ="Guardar", 
-                                 command=lambda:0)
+                                 command=self.save)
         self.printButton = Button(self.subFrame3, text ="Imprimir",
                                   command=lambda:0)
         self.saveAndPrintButton = Button(self.subFrame3, 
@@ -97,12 +128,10 @@ class Facturar():
 
         self.total.trace('w', self.updateBalance)
         self.payment.trace('w', self.updateBalance)
-        self.prevBalance.set(12000)
-
         # --------------Window structure-------------------
         self.root.title("Factura")
         self.root.geometry("900x700")
-        #self.ScrollRoot.grid(column=1, sticky="nsew", fill ="y")
+
         self.subFrame1.grid(row=0, column=0, padx=20, pady=10)
         self.subFrame2.grid(row=1, column=0, padx=20, pady=10)
         self.facFrame.grid(row=2, column=0, padx=20, pady=10)
@@ -111,11 +140,11 @@ class Facturar():
         self.dateLabel.grid(row=0, column=0, padx=10, pady=5)
         self.dataEntry.grid(row=0, column=1, padx=10, pady=5)
         self.nameLabel.grid(row=1, column=0, padx=10, pady=5)
-        self.nameEntry.grid(row=1, column=1, padx=10, pady=5)
+        self.nameEntry.grid(row=1, column=1, padx=10, pady=5)	
         self.facNumbLabel.grid(row=0, column=2, padx=10, pady=5)
         self.facNumbEntry.grid(row=0, column=3, padx=10, pady=5)
 
-        self.quantityEntry.grid(row=1, column=0, padx=5, pady=5)
+        self.amountEntry.grid(row=1, column=0, padx=5, pady=5)
         self.productEntry.grid(row=1, column=1, padx=5, pady=5)
         self.priceEntry.grid(row=1, column=2, padx=5, pady=5)
         self.subTotalEntry.grid(row=1, column=3, padx=5, pady=5)
@@ -125,6 +154,7 @@ class Facturar():
 
         self.addButton.grid(row=1, column=4, padx=5, pady=5)
         self.lessButton.grid(row=1, column=5, padx=5, pady=5)
+
         self.cancelButton.grid(row=0, column=0, padx=15, pady=10)
         self.saveButton.grid(row=1, column=0, padx=15, pady=10)
         self.printButton.grid(row=2, column=0, padx=15, pady=10)
@@ -134,46 +164,46 @@ class Facturar():
         self.paymentEntry.grid(row=2, column=2)
         self.finBalanceEntry.grid(row=3, column=2)
 
-    def addFac(self):
-        line = [float(self.quantity.get()), self.product.get(), 
-                float(self.price.get()), float(self.subTotal.get())]
-
-        text = str(line[0]) + "\t" + line[1] + "\t" + str(line[2]) + \
-               "\t" + str(line[3])+"\n"
-
-        self.facArray.append(line)
-        self.facText.insert(END, text)
-        self.sumarFac()
-        self.rowCount += 1
-
-    def lessFac(self):   
-        row = str(self.rowCount) +".0" 
-        self.facText.delete(row, INSERT)
-        
-        if self.rowCount > 0:
-            self.rowCount -= 1
-            self.facArray = self.facArray[:self.rowCount]
-            self.sumarFac()
-        else:
-            messagebox.showwarning(message="No hay nada que borrar", 
-                                   title="Cuidado")
-
-    def sumarFac(self):
-        array = np.array(self.facArray, dtype=object)
-        self.total.set(np.sum(array[:,3]))
 
     def calSubTotal(self, *args):
-        ErrorDate = False
-        
-        try:
-            self.subTotal.set(self.quantity.get() * self.price.get())
-        except:
-            ErrorDate = True
+	    ErrorDate = False
+	    
+	    try:
+	        self.subTotal.set(self.amount.get() * self.price.get())
+	    except:
+	        ErrorDate = True
 
-        if ErrorDate:
-            pass
+	    if ErrorDate:
+	        pass
+
+    def updateText(self):
+        self.facText.delete('0.0', END)
+
+        for product in self.factura.products:
+            self.facText.insert(END, self.factura.renderProduct(product))
+
+    def add(self):
+        product = self.product.get()
+
+        self.factura.addField(self.amount.get(), product, self.price.get())
+
+        self.updateText()
+
+        self.total.set(self.factura.getTotal())
+
+        print(self.factura.products)
+
+    def delete(self):
+        product = self.product.get()
+        self.factura.deleteField(product)
+        print(self.factura.products)
+
+        self.updateText()
+
+
     def updateBalance(self, *args):
         ErrorDate = False
+
         try:    
             self.finBalance.set(self.prevBalance.get() + \
                                 self.total.get() - self.payment.get())
@@ -183,14 +213,23 @@ class Facturar():
         if ErrorDate:
             pass
 
-    def cancelFac(self):
-        self.root.destroy()
+    def save(self):
+        facName = "Base_de_datos/facturas/" + self.customerName.get() +\
+                  "_" + self.DATE.strftime("%d_%m_%Y_%H:%M") +".fact"
+        
+        self.factura.save(facName)
+        answer = messagebox.askyesno(message="La factura fue guardada con exito, desea salir ?", title= "save successful")
+        
+        if answer:
+            self.root.destroy()
 
 
 def main():
     root = Tk()
-    Facturar(root)
+    window = Facturar(root)
     root.mainloop()
 
 if __name__ == '__main__':
-    main()
+    main()	
+
+    
