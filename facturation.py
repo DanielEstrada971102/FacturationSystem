@@ -1,47 +1,52 @@
 from factura import *
 from tkinter import *
 from tkinter import ttk
-from glob import glob
 from tkinter import messagebox
 from datetime import datetime
-from numpy import array
 from csv import reader
+#from os import startfile
 
+#----------------cargando Base de datos---------------------
 
-productList =[]
+def uploadFile(fileName, List1):
+    with open(fileName, 'r') as f:
+        file = reader(f)
+        for row in file:
+            List1[row[0]] = row[1]
 
-with open("Base_de_datos/Productos/Productos.csv", 'r') as f:
-    file = reader(f)
-    for row in file:
-        productList.append(row) 
+productFile = dict()
+uploadFile("Base_de_datos/Productos/Productos.csv", productFile)
 
-productList = array(productList)
+customerFile = dict()
+uploadFile("Base_de_datos/Clientes/Clientes.csv", customerFile)
 
-customerList =[]
+productList = []
+customerList = [] 
 
-with open("Base_de_datos/Clientes/Clientes.csv", 'r') as f:
-    file = reader(f)
-    for row in file:
-        customerList.append(row) 
+for product,_ in productFile.items():
+    productList.append(product)
 
-customerList = array(customerList)
+for customer,_ in customerFile.items():
+    customerList.append(customer)
 
+#-----------------------------------------------------------
 
 class Facturar(object):
 
     def __init__(self, master):
 
-        self.DATE = datetime.now() 
         self.root = master
-        self.factura = Bill()
+        self.factura = Bill(date = datetime.now())
 
         self.subFrame1 = Frame(self.root)
         self.subFrame2 = Frame(self.root)
         self.facFrame = Frame(self.root)
         self.subFrame3 = Frame(self.root)
+
         # ------------Variables de control-------------
-        self.date = StringVar(value=self.DATE.strftime("%d/%m/%Y"))
-        self.Numb = StringVar(value=str(len(glob("Base_de_datos/facturas/*.fact"))))
+
+        self.date = StringVar(value=self.factura.get_dateToFrame())
+        self.Numb = IntVar(value= self.factura.facNumber)
         self.customerName = StringVar()
 
         self.amount = DoubleVar()
@@ -55,6 +60,7 @@ class Facturar(object):
         self.finBalance = DoubleVar(value=0)
 
         # -----------------subFrame1------------------
+
         self.dateLabel = Label(self.subFrame1, text="Fecha:", font=(14))
         self.dataEntry = Entry(self.subFrame1, justify="center", textvariable=self.date)
 
@@ -63,7 +69,9 @@ class Facturar(object):
 
         self.nameLabel = Label(self.subFrame1, text="Nombre:", font=(14))
         self.nameEntry = ttk.Combobox(
-            self.subFrame1, justify="center", values=customerList[1:,0], textvariable=self.customerName)
+            self.subFrame1, justify="center", values=customerList, textvariable=self.customerName)
+
+        self.customerName.trace('w', self.getPrevBalance)
 
         # -----------------subFrame2-------------------
         Label(self.subFrame2, text="Cantidad", font=(14),
@@ -78,7 +86,7 @@ class Facturar(object):
         self.amountEntry = Entry(
             self.subFrame2, justify="center", textvariable=self.amount)
         self.productEntry = ttk.Combobox(
-            self.subFrame2, justify="center", values=productList[1:,0], textvariable=self.product)
+            self.subFrame2, justify="center", values=productList, textvariable=self.product)
         self.priceEntry = Entry(
             self.subFrame2, justify="center", textvariable=self.price)
         self.subTotalEntry = Entry(
@@ -86,6 +94,7 @@ class Facturar(object):
 
         self.amount.trace('w', self.calSubTotal)
         self.price.trace('w', self.calSubTotal)
+        self.product.trace('w', lambda *args: self.price.set(productFile[self.product.get()]))
 
         self.addButton = Button(self.subFrame2, text="+", command=self.add)
         self.lessButton = Button(self.subFrame2, text="-",command=self.delete)
@@ -101,10 +110,10 @@ class Facturar(object):
         self.saveButton = Button(self.subFrame3, text ="Guardar", 
                                  command=self.save)
         self.printButton = Button(self.subFrame3, text ="Imprimir",
-                                  command=lambda:0)
+                                  command= self.Print)
         self.saveAndPrintButton = Button(self.subFrame3, 
                                          text ="Imprimir y Guardar",    
-                                         command=lambda:0)
+                                         command= self.printAndSave)
 
         Label(self.subFrame3, text="TOTAL: ", font=(24), 
               bg="gray").grid(row=0, column=1, padx=10)
@@ -128,6 +137,7 @@ class Facturar(object):
 
         self.total.trace('w', self.updateBalance)
         self.payment.trace('w', self.updateBalance)
+
         # --------------Window structure-------------------
         self.root.title("Factura")
         self.root.geometry("900x700")
@@ -178,7 +188,6 @@ class Facturar(object):
 
     def updateText(self):
         self.facText.delete('0.0', END)
-
         for product in self.factura.products:
             self.facText.insert(END, self.factura.renderProduct(product))
 
@@ -186,43 +195,84 @@ class Facturar(object):
         product = self.product.get()
 
         self.factura.addField(self.amount.get(), product, self.price.get())
-
         self.updateText()
-
-        self.total.set(self.factura.getTotal())
-
-        print(self.factura.products)
+        self.total.set(self.factura.get_total())
 
     def delete(self):
         product = self.product.get()
+
         self.factura.deleteField(product)
-        print(self.factura.products)
-
         self.updateText()
+        self.total.set(self.factura.get_total())
 
-
-    def updateBalance(self, *args):
+    def updateBalance(self, FIN = False, *args):
         ErrorDate = False
 
-        try:    
-            self.finBalance.set(self.prevBalance.get() + \
-                                self.total.get() - self.payment.get())
+        try:
+            self.factura.payment = self.payment.get()
+            self.factura.set_finBalance()    
+            self.finBalance.set(self.factura.finBalance)
         except:
             ErrorDate = True
 
         if ErrorDate:
             pass
 
+        if FIN:
+            customerFile[self.factura.customer] = self.factura.finBalance
+            with open("Base_de_datos/Clientes/Clientes.csv", 'w') as f:
+                for customer, Balance in customerFile.items():
+                    f.write("%s,%s\n"%(customer, Balance))
+
+    def getPrevBalance(self, *args):
+        self.factura.customer = self.customerName.get()
+        ErrorDate = False
+
+        try:    
+            self.factura.prevBalance = customerFile[self.factura.customer]
+            self.prevBalance.set(self.factura.prevBalance)
+            self.updateBalance()
+        except: 
+            ErrorDate = True
+
+        if ErrorDate:
+            pass
+
     def save(self):
-        facName = "Base_de_datos/facturas/" + self.customerName.get() +\
-                  "_" + self.DATE.strftime("%d_%m_%Y_%H:%M") +".fact"
-        
-        self.factura.save(facName)
+        self.factura.save(self.factura.get_facName())
+        self.updateBalance(FIN=True)
+        self.addToRegister()
+
         answer = messagebox.askyesno(message="La factura fue guardada con exito, desea salir ?", title= "save successful")
-        
+
         if answer:
             self.root.destroy()
 
+    def Print(self):
+        pass #startfile(self.facName, "print")
+
+    def printAndSave(self):
+        self.Print()
+        self.save()
+
+    def addToRegister(self):
+        ingreso = self.payment.get()
+        total = self.total.get()
+        credito = total - ingreso
+        text = "%s,%d,%d,%d\n"%(self.DATE.strftime("%d/%m/%Y"), ingreso, credito, total)
+
+        with open("Base_de_datos/facturas/Registro.csv", "a") as f:
+            f.write(text)
+
+class Balance(object):
+    """docstring for DailyBalance"""
+    def __init__(self, master):
+        self.root = master
+
+    # --------------Window structure-------------------
+        self.root.title("Balance")
+        self.root.geometry("500x800")
+        
 
 def main():
     root = Tk()
