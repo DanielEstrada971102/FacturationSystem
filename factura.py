@@ -22,8 +22,6 @@ class Bill(object):
         for _, (_, _, subtotal) in self.products.items():
             self.total += subtotal
 
-        print(self.total)
-
         return self.total
 
     def set_finBalance(self):
@@ -33,14 +31,14 @@ class Bill(object):
         return self.date.strftime("%d/%m/%Y")
 
     def get_facName(self):
-        neme = "Base_de_datos/facturas/" + self.customer + "_" +\
+        name = "Base_de_datos/facturas/" + self.customer + "_" +\
                self.date.strftime("%d_%m_%Y_%H:%M") + ".fact"
         return name
 
     def renderProduct(self, product):
         amount, price, subtotal = self.products[product]
 
-        text = '%.2f\t%s\t%d\t%.2f\n' % (amount, product, price, subtotal)
+        text = '%.2f    %s    %d    %.2f \n' % (amount, product, price, subtotal)
 
         return text
 
@@ -53,9 +51,10 @@ class Bill(object):
         "*********************************************\n" + \
         " Nombre: %s               Fac N°: %s \n"%(self.customer, str(self.facNumber)) + \
         " Fecha: %s   \n"%(self.date.strftime("%d/%m/%Y/ %H:%M")) + \
-        "=============================================\n"
+        "=============================================\n\n"
 
         footer = \
+         "............................................\n" + \
          "  Total:           %.2f\n"%(self.total) + \
          "  Saldo Anterior:  %.2f\n"%(self.prevBalance) + \
          "  Abono:           %.2f\n"%(self.payment) + \
@@ -66,5 +65,5 @@ class Bill(object):
         with open(file, 'w') as f:
             f.write(header)
             for productName in self.products:
-                file.write(self.renderProduct(productName))
+                f.write(self.renderProduct(productName))
             f.write(footer)

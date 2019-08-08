@@ -12,13 +12,17 @@ def uploadFile(fileName, List1):
     with open(fileName, 'r') as f:
         file = reader(f)
         for row in file:
-            List1[row[0]] = row[1]
+            if row[0] == "Product" or row[0] == "Nombre":
+                pass
+            else:
+                List1[row[0]] = float(row[1])
 
 productFile = dict()
 uploadFile("Base_de_datos/Productos/Productos.csv", productFile)
 
 customerFile = dict()
 uploadFile("Base_de_datos/Clientes/Clientes.csv", customerFile)
+
 
 productList = []
 customerList = [] 
@@ -119,7 +123,7 @@ class Facturar(object):
               bg="gray").grid(row=0, column=1, padx=10)
         Label(self.subFrame3, text="Saldo.Ant: ", font=(24), 
               bg="gray").grid(row=1, column=1, padx=10)
-        Label(self.subFrame3, text="Abono: ", font=(24), 
+        Label(self.subFrame3, text="Pago: ", font=(24), 
               bg="gray").grid(row=2, column=1, padx=10)
         Label(self.subFrame3, text="Saldo.Fin: ", font=(24), 
               bg="gray").grid(row=3, column=1, padx=10)
@@ -207,11 +211,12 @@ class Facturar(object):
 
     def updateBalance(self, FIN = False, *args):
         ErrorDate = False
-
+        
         try:
             self.factura.payment = self.payment.get()
             self.factura.set_finBalance()    
             self.finBalance.set(self.factura.finBalance)
+
         except:
             ErrorDate = True
 
@@ -221,6 +226,7 @@ class Facturar(object):
         if FIN:
             customerFile[self.factura.customer] = self.factura.finBalance
             with open("Base_de_datos/Clientes/Clientes.csv", 'w') as f:
+                f.write("%s,%s\n"%("Nombre", "Saldo"))
                 for customer, Balance in customerFile.items():
                     f.write("%s,%s\n"%(customer, Balance))
 
@@ -232,6 +238,7 @@ class Facturar(object):
             self.factura.prevBalance = customerFile[self.factura.customer]
             self.prevBalance.set(self.factura.prevBalance)
             self.updateBalance()
+
         except: 
             ErrorDate = True
 
@@ -240,7 +247,7 @@ class Facturar(object):
 
     def save(self):
         self.factura.save(self.factura.get_facName())
-        self.updateBalance(FIN=True)
+        self.updateBalance(FIN = True)
         self.addToRegister()
 
         answer = messagebox.askyesno(message="La factura fue guardada con exito, desea salir ?", title= "save successful")
@@ -256,10 +263,11 @@ class Facturar(object):
         self.save()
 
     def addToRegister(self):
-        ingreso = self.payment.get()
-        total = self.total.get()
-        credito = total - ingreso
-        text = "%s,%d,%d,%d\n"%(self.DATE.strftime("%d/%m/%Y"), ingreso, credito, total)
+        text = "%s,%d,%d,%d\n"%(self.factura.get_dateToFrame(), 
+                                self.factura.payment, 
+                                self.factura.total -\
+                                self.factura.payment,
+                                self.factura.total)
 
         with open("Base_de_datos/facturas/Registro.csv", "a") as f:
             f.write(text)
