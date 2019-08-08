@@ -3,35 +3,20 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 from datetime import datetime
-from csv import reader
+from csv import DictReader
 #from os import startfile
 
 #----------------cargando Base de datos---------------------
 
-def uploadFile(fileName, List1):
-    with open(fileName, 'r') as f:
-        file = reader(f)
-        for row in file:
-            if row[0] == "Product" or row[0] == "Nombre":
-                pass
-            else:
-                List1[row[0]] = float(row[1])
+def uploadFile(fileName, headers):
+    with open(fileName) as f:
+        reader = DictReader(f)
+        reader = {row[headers[0]]: row[headers[1]] for row in reader}
 
-productFile = dict()
-uploadFile("Base_de_datos/Productos/Productos.csv", productFile)
+    return reader
 
-customerFile = dict()
-uploadFile("Base_de_datos/Clientes/Clientes.csv", customerFile)
-
-
-productList = []
-customerList = [] 
-
-for product,_ in productFile.items():
-    productList.append(product)
-
-for customer,_ in customerFile.items():
-    customerList.append(customer)
+productList = uploadFile("Base_de_datos/Productos/Productos.csv", ["Product", "Default Price"])
+customerList = uploadFile("Base_de_datos/Clientes/Clientes.csv",["Nombre", "Saldo"])
 
 #-----------------------------------------------------------
 
@@ -73,7 +58,7 @@ class Facturar(object):
 
         self.nameLabel = Label(self.subFrame1, text="Nombre:", font=(14))
         self.nameEntry = ttk.Combobox(
-            self.subFrame1, justify="center", values=customerList, textvariable=self.customerName)
+            self.subFrame1, justify="center", values=list(customerList.keys()), textvariable=self.customerName)
 
         self.customerName.trace('w', self.getPrevBalance)
 
@@ -90,7 +75,7 @@ class Facturar(object):
         self.amountEntry = Entry(
             self.subFrame2, justify="center", textvariable=self.amount)
         self.productEntry = ttk.Combobox(
-            self.subFrame2, justify="center", values=productList, textvariable=self.product)
+            self.subFrame2, justify="center", values=list(productList.keys()), textvariable=self.product)
         self.priceEntry = Entry(
             self.subFrame2, justify="center", textvariable=self.price)
         self.subTotalEntry = Entry(
@@ -98,7 +83,7 @@ class Facturar(object):
 
         self.amount.trace('w', self.calSubTotal)
         self.price.trace('w', self.calSubTotal)
-        self.product.trace('w', lambda *args: self.price.set(productFile[self.product.get()]))
+        self.product.trace('w', lambda *args: self.price.set(productList[self.product.get()]))
 
         self.addButton = Button(self.subFrame2, text="+", command=self.add)
         self.lessButton = Button(self.subFrame2, text="-",command=self.delete)
@@ -224,10 +209,10 @@ class Facturar(object):
             pass
 
         if FIN:
-            customerFile[self.factura.customer] = self.factura.finBalance
+            customerList[self.factura.customer] = self.factura.finBalance
             with open("Base_de_datos/Clientes/Clientes.csv", 'w') as f:
                 f.write("%s,%s\n"%("Nombre", "Saldo"))
-                for customer, Balance in customerFile.items():
+                for customer, Balance in customerList.items():
                     f.write("%s,%s\n"%(customer, Balance))
 
     def getPrevBalance(self, *args):
@@ -235,7 +220,7 @@ class Facturar(object):
         ErrorDate = False
 
         try:    
-            self.factura.prevBalance = customerFile[self.factura.customer]
+            self.factura.prevBalance = float(customerList[self.factura.customer])
             self.prevBalance.set(self.factura.prevBalance)
             self.updateBalance()
 
