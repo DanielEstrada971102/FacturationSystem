@@ -1,6 +1,7 @@
 from glob import glob
+from billPDF import *
 
-class Bill(object):
+class Factura(object):
     def __init__(self, date):
         self.products = dict()
         self.date = date
@@ -32,38 +33,43 @@ class Bill(object):
 
     def get_facName(self):
         name = "Base_de_datos/facturas/" + self.customer + "_" +\
-               self.date.strftime("%d_%m_%Y_%H:%M") + ".fact"
+               self.date.strftime("%d_%m_%Y_%H:%M") + ".pdf"
         return name
 
     def renderProduct(self, product):
         amount, price, subtotal = self.products[product]
 
-        text = '%.2f    %s    %d    %.2f \n' % (amount, product, price, subtotal)
+        text = '%5.2f    %s    %5d    %7.2f \n' % (amount, product, price, subtotal)
 
         return text
 
     def save(self, file):
 
-        header = \
-        "*********************************************\n" + \
-        "*             MAXIFRUVER LUPE               *\n" + \
-        "*                                           *\n" + \
-        "*********************************************\n" + \
-        " Nombre: %s               Fac N°: %s \n"%(self.customer, str(self.facNumber)) + \
-        " Fecha: %s   \n"%(self.date.strftime("%d/%m/%Y/ %H:%M")) + \
-        "=============================================\n\n"
+        factura = []
+        file = PDFBill(file, (148, 210))
+        
+        positionName = file.border[0] * 3, 410
+        positionNumb = file.papersize[0] - (10 * file.border[0]), 410
+        positiondate = file.border[0]*3, 395
+        positionFirstLine = positiondate[0], positiondate[1] - 10, file.papersize[0] - 3 * file.border[0], positiondate[1] - 10 
+        positionSecondLine = positiondate[0], 140, file.papersize[0] - 3 * file.border[0], 140 
 
-        footer = \
-         "............................................\n" + \
-         "  Total:           %.2f\n"%(self.total) + \
-         "  Saldo Anterior:  %.2f\n"%(self.prevBalance) + \
-         "  Abono:           %.2f\n"%(self.payment) + \
-         "  Saldo Final:     %.2f\n"%(self.finBalance) + \
-         "=============================================\n" + \
-         "         Gracias por su compra              \n"        
+        
+        file.canvas.drawString(positionName[0], positionName[1], "Nombre: %s"%(self.customer))
+        file.canvas.drawString(positionNumb[0], positionNumb[1], "Fac N°: %s"%str(self.facNumber))
+        file.canvas.drawString(positiondate[0], positiondate[1], "Fecha: %s   "%(self.date.strftime("%d/%m/%Y/ %H:%M")))
+        file.canvas.line(*positionFirstLine)
+        
 
-        with open(file, 'w') as f:
-            f.write(header)
-            for productName in self.products:
-                f.write(self.renderProduct(productName))
-            f.write(footer)
+        for productName in self.products:
+            factura.append(self.renderProduct(productName))
+
+        balance = [ "Total:                             %.2f"%(self.total),
+                    "Saldo Anterior:                    %.2f"%(self.prevBalance),
+                    "Abono:                             %.2f"%(self.payment), 
+                    "Saldo Final:                       %.2f"%(self.finBalance)]
+
+        file.insertText(file.border[0] * 3, 370, factura)
+        file.canvas.line(*positionSecondLine)
+        file.insertText(file.border[0] * 3, 120, balance)
+        file.end()

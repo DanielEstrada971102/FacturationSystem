@@ -25,7 +25,7 @@ class Facturar(object):
     def __init__(self, master):
 
         self.root = master
-        self.factura = Bill(date = datetime.now())
+        self.factura = Factura(date = datetime.now())
 
         self.subFrame1 = Frame(self.root)
         self.subFrame2 = Frame(self.root)
