@@ -6,13 +6,14 @@ class Factura(object):
         self.products = dict()
         self.date = date
         self.customer = ""
-        self.facNumber = len(glob("Base_de_datos/facturas/*.fact")) + 1 
+        self.facNumber = len(glob("Base_de_datos/facturas/*.pdf")) + 1 
         self.total = 0
         self.prevBalance = 0
         self.payment = 0
         self.finBalance = 0
 
-    def addField(self, amount, productName, price): 
+    def addField(self, amount, productName, price):
+        productName = productName + (20 - len(productName)) * " " 
         self.products[productName] = amount, price, amount * price
 
     def deleteField(self, productName):
@@ -39,14 +40,14 @@ class Factura(object):
     def renderProduct(self, product):
         amount, price, subtotal = self.products[product]
 
-        text = '%5.2f    %s    %5d    %7.2f \n' % (amount, product, price, subtotal)
+        text = '%.2f    %s  %d    %.2f' % (amount, product, price, subtotal)
 
         return text
 
     def save(self, file):
 
         factura = []
-        file = PDFBill(file, (148, 210))
+        file = PDF_receipt(file, (148, 210))
         
         positionName = file.border[0] * 3, 410
         positionNumb = file.papersize[0] - (10 * file.border[0]), 410

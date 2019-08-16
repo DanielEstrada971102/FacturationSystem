@@ -178,7 +178,7 @@ class Facturar(object):
     def updateText(self):
         self.facText.delete('0.0', END)
         for product in self.factura.products:
-            self.facText.insert(END, self.factura.renderProduct(product))
+            self.facText.insert(END, self.factura.renderProduct(product) + "\n")
 
     def add(self):
         product = self.product.get()

@@ -1,7 +1,7 @@
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import CMYKColor
 
-class PDFBill(object):
+class PDF_receipt(object):
     """docstring for PDFBill"""
     def __init__(self, facName, size):
 
