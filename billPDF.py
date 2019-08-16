@@ -1,16 +1,24 @@
 from reportlab.pdfgen import canvas
-from reportlab.lib.colors import CMYKColor
+from reportlab.lib.utils import ImageReader
+
+X = 0
+Y = 1
 
 class PDF_receipt(object):
-    """docstring for PDFBill"""
+
     def __init__(self, facName, size):
 
-        self.papersize = self.milimetersToPoints(*size) #148, 210
+        self.papersize = self.milimetersToPoints(*size) #A4 (148, 210)
         self.border = self.milimetersToPoints(5, 10)
-        self.logo = "Logo.jpg"
-        self.canvas = canvas.Canvas(facName, self.papersize)
+        self.logo = ImageReader("Logo.jpg")
 
-        self.header(self.border[0], self.papersize[1])
+        size = self.logo.getSize()
+        factor =  size[Y] / size[X]
+        self.logoWidth = self.papersize[X] - 4 * self.border[X] 
+        self.logoHeight = self.logoWidth * factor
+     
+        self.canvas = canvas.Canvas(facName, self.papersize)
+        self.header(self.border[X], self.papersize[Y])
         self.footer('¡Gracias por su compra, Vuelva pronto!') 
         self.canvas.setFont("Courier", 12)
         self.canvas.setFillColor("black")
@@ -30,14 +38,14 @@ class PDF_receipt(object):
         self.canvas.drawText(text)
 
     def header(self, x, y):
-        width = self.papersize[0]- 4 * self.border[0]
-        height =  width / 2.8
-        self.canvas.drawImage(self.logo, x + self.border[0], y - height - self.border[1] , width = width , height = height)
+        spaceTocenter = (self.papersize[X] - 2 * self.border[X] - self.logoWidth ) / 2
+        self.canvas.drawImage(self.logo, x + spaceTocenter, y - self.logoHeight - self.border[Y],\
+                              width = self.logoWidth , height = self.logoHeight)
 
     def footer(self, message):
         self.canvas.setFont("Courier-Bold", 15)
         self.canvas.setFillColorRGB(0.929, .49, 0.192)
-        self.canvas.drawString(2.5 * self.border[0], self.border[1], message)
+        self.canvas.drawString(2.5 * self.border[X], self.border[Y], message)
 
     def end(self):
         self.canvas.showPage()

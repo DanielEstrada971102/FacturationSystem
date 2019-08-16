@@ -2,6 +2,7 @@ from glob import glob
 from billPDF import *
 
 class Factura(object):
+
     def __init__(self, date):
         self.products = dict()
         self.date = date
@@ -44,33 +45,37 @@ class Factura(object):
 
         return text
 
-    def save(self, file):
+    def save(self, nameFile):
 
-        factura = []
-        file = PDF_receipt(file, (148, 210))
+        factura = [self.renderProduct(productName) for productName in self.products]
+
+        file = PDF_receipt(nameFile, (148, 130 + len(factura)* 5))
         
-        positionName = file.border[0] * 3, 410
-        positionNumb = file.papersize[0] - (10 * file.border[0]), 410
-        positiondate = file.border[0]*3, 395
-        positionFirstLine = positiondate[0], positiondate[1] - 10, file.papersize[0] - 3 * file.border[0], positiondate[1] - 10 
-        positionSecondLine = positiondate[0], 140, file.papersize[0] - 3 * file.border[0], 140 
+        positionName = file.border[X] * 3, file.papersize[Y] - file.logoHeight - 50
+        positionNumb = file.papersize[X] - (10 * file.border[X]), positionName[Y]
+        positiondate = file.border[X]*3, positionName[Y] - 15
+        positionFirstLine = positiondate[X], positiondate[Y] - 10, file.papersize[X] - 3 * file.border[X], positiondate[Y] - 10 
+        positionSecondLine = positiondate[X], positionFirstLine[Y] - (len(factura) + 1 ) * 15, \
+                             file.papersize[X] - 3 * file.border[X], positionFirstLine[Y] - (len(factura) + 1 ) * 15 
 
         
-        file.canvas.drawString(positionName[0], positionName[1], "Nombre: %s"%(self.customer))
-        file.canvas.drawString(positionNumb[0], positionNumb[1], "Fac N°: %s"%str(self.facNumber))
-        file.canvas.drawString(positiondate[0], positiondate[1], "Fecha: %s   "%(self.date.strftime("%d/%m/%Y/ %H:%M")))
+        file.canvas.drawString(positionName[X], positionName[Y], "Nombre: %s"%(self.customer))
+        file.canvas.drawString(positionNumb[X], positionNumb[Y], "Fac N°: %s"%str(self.facNumber))
+        file.canvas.drawString(positiondate[X], positiondate[Y], "Fecha: %s   "%(self.date.strftime("%d/%m/%Y/ %H:%M")))
         file.canvas.line(*positionFirstLine)
-        
-
-        for productName in self.products:
-            factura.append(self.renderProduct(productName))
 
         balance = [ "Total:                             %.2f"%(self.total),
                     "Saldo Anterior:                    %.2f"%(self.prevBalance),
                     "Abono:                             %.2f"%(self.payment), 
                     "Saldo Final:                       %.2f"%(self.finBalance)]
 
-        file.insertText(file.border[0] * 3, 370, factura)
+        file.insertText(file.border[X] * 3, positionFirstLine[Y] - 15, factura)
         file.canvas.line(*positionSecondLine)
-        file.insertText(file.border[0] * 3, 120, balance)
+        file.insertText(file.border[X] * 3, positionSecondLine[Y] - 15, balance)
         file.end()
+
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()
