@@ -7,7 +7,7 @@ class Factura(object):
         self.products = dict()
         self.date = date
         self.customer = ""
-        self.facNumber = len(glob("Base_de_datos/facturas/*.pdf")) + 1 
+        self.facNumber = len(glob("Base_de_datos/Ventas/*.pdf")) + 1 
         self.total = 0
         self.prevBalance = 0
         self.payment = 0
@@ -33,15 +33,18 @@ class Factura(object):
     def get_dateToFrame(self):
         return self.date.strftime("%d/%m/%Y")
 
+    def get_timeToFrame(self):
+        return self.date.strftime("%H:%M")
+
     def get_facName(self):
-        name = "Base_de_datos/facturas/" + self.customer + "_" +\
+        name = "Base_de_datos/Ventas/" + self.customer + "_" +\
                self.date.strftime("%d_%m_%Y_%H:%M") + ".pdf"
         return name
 
     def renderProduct(self, product):
         amount, price, subtotal = self.products[product]
 
-        text = '%.2f    %s  %d    %.2f' % (amount, product, price, subtotal)
+        text = '%4.2f    %s  %d    %.2f' % (amount, product, price, subtotal)
 
         return text
 

@@ -8,15 +8,15 @@ from csv import DictReader
 
 #----------------cargando Base de datos---------------------
 
-def uploadFile(fileName, headers):
+def loadFile(fileName, headers):
     with open(fileName) as f:
         reader = DictReader(f)
         reader = {row[headers[0]]: row[headers[1]] for row in reader}
 
     return reader
 
-productList = uploadFile("Base_de_datos/Productos/Productos.csv", ["Product", "Default Price"])
-customerList = uploadFile("Base_de_datos/Clientes/Clientes.csv",["Nombre", "Saldo"])
+productList = loadFile("Base_de_datos/Productos/Productos.csv", ["Product", "Default Price"])
+customerList = loadFile("Base_de_datos/Clientes/Clientes.csv",["Nombre", "Saldo"])
 
 #-----------------------------------------------------------
 
@@ -83,7 +83,7 @@ class Facturar(object):
 
         self.amount.trace('w', self.calSubTotal)
         self.price.trace('w', self.calSubTotal)
-        self.product.trace('w', lambda *args: self.price.set(productList[self.product.get()]))
+        self.product.trace('w', self.getDefaultPrice)
 
         self.addButton = Button(self.subFrame2, text="+", command=self.add)
         self.lessButton = Button(self.subFrame2, text="-",command=self.delete)
@@ -230,6 +230,12 @@ class Facturar(object):
         if ErrorDate:
             pass
 
+    def getDefaultPrice(self, *args):
+        try:
+            self.price.set(productList[self.product.get()])
+        except:
+            pass
+
     def save(self):
         self.factura.save(self.factura.get_facName())
         self.updateBalance(FIN = True)
@@ -248,24 +254,27 @@ class Facturar(object):
         self.save()
 
     def addToRegister(self):
-        text = "%s,%d,%d,%d\n"%(self.factura.get_dateToFrame(), 
+        paymentRegister = "%s,%d,%d,%d\n"%(self.factura.get_dateToFrame(), 
                                 self.factura.payment, 
                                 self.factura.total -\
                                 self.factura.payment,
                                 self.factura.total)
 
-        with open("Base_de_datos/facturas/Registro.csv", "a") as f:
-            f.write(text)
+        customerEstateRegister = "%s,%s,%s, %d\n"%(self.factura.get_dateToFrame(), self.factura.get_timeToFrame(), 
+                                                 self.factura.customer, self.factura.finBalance)
 
-class Balance(object):
-    """docstring for DailyBalance"""
-    def __init__(self, master):
-        self.root = master
+        for product, (amount, _, _ )in self.factura.products.items():
+            sellRegister = "%s,%s,%s, %.3f\n"%(self.factura.get_dateToFrame(), self.factura.get_timeToFrame(),
+                                              product, amount)
+            with open("Base_de_datos/Productos/Registro_de_Venta.csv", "a") as f:
+                f.write(sellRegister)
 
-    # --------------Window structure-------------------
-        self.root.title("Balance")
-        self.root.geometry("500x800")
-        
+        with open("Base_de_datos/Ventas/Registro_de_Venta.csv", "a") as f:
+            f.write(paymentRegister)
+
+        with open("Base_de_datos/Clientes/Registro_de_Estado.csv", "a") as f:
+            f.write(customerEstateRegister)
+
 
 def main():
     root = Tk()
