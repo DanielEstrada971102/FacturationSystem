@@ -60,6 +60,7 @@ class customerMenu(object):
         root = Toplevel(self.root)
         self.root.withdraw()
         custWindow =  Clientes(root, "state")
+        self.root.deiconify()
         
     def register(self):
         pass
