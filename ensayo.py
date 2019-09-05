@@ -1,21 +1,8 @@
-from tkinter import *
-from time import sleep
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.figure import Figure
+import tkinter as Tk
+from csv import DictReader
+import pandas as pd
 
-def funtion():
-    root.withdraw()
-    sleep(3)
-    root.deiconify()
- 
 
-root = Tk()
-frame = Frame(root)
-
-message = Label(frame, text="HOLA ESTO ES PRUEBA")
-button = Button(frame, text="Ensayar", command=funtion)
-
-root.geometry("500x500")
-message.grid(row=0, column = 0)
-button.grid(row=1, column =0)
-frame.pack()
-
-root.mainloop()
+x = pd.read_csv("Base_de_datos/Clientes/Clientes.csv")

@@ -51,7 +51,7 @@ class Facturar(object):
         # -----------------subFrame1------------------
 
         self.dateLabel = Label(self.subFrame1, text="Fecha:", font=(14))
-        self.dataEntry = Entry(self.subFrame1, justify="center", textvariable=self.date)
+        self.dataEntry = Entry(self.subFrame1, justify="center", textvariable=self.date, state="disable")
 
         self.facNumbLabel = Label(self.subFrame1, text="N°:", font=(14))
         self.facNumbEntry = Entry(self.subFrame1, justify="center", textvariable=self.Numb, state="disable")
@@ -91,7 +91,7 @@ class Facturar(object):
         # -----------------facFrame---------------------
         self.facText = Text(self.facFrame, height=10)
         self.Scrollfac = Scrollbar(self.facFrame, command=self.facText.yview)
-        self.facText.config(yscrollcommand = self.Scrollfac.set)
+        self.facText.config(yscrollcommand = self.Scrollfac.set, state="disabled")
 
         # -----------------subFrame3---------------------
         self.cancelButton = Button(self.subFrame3, text="Cancelar",
@@ -176,9 +176,11 @@ class Facturar(object):
 	        pass
 
     def updateText(self):
+        self.facText.config(state="normal")
         self.facText.delete('0.0', END)
         for product in self.factura.products:
             self.facText.insert(END, self.factura.renderProduct(product) + "\n")
+        self.facText.config(state="disable")
 
     def add(self):
         product = self.product.get()
@@ -260,8 +262,8 @@ class Facturar(object):
                                 self.factura.payment,
                                 self.factura.total)
 
-        customerEstateRegister = "%s,%s,%s, %d\n"%(self.factura.get_dateToFrame(), self.factura.get_timeToFrame(), 
-                                                 self.factura.customer, self.factura.finBalance)
+        customerEstateRegister = "%s,%s,%s, %d, %d \n"%(self.factura.get_dateToFrame(), self.factura.get_timeToFrame(), 
+                                                 self.factura.customer, self.factura.total, self.factura.finBalance)
 
         for product, (amount, _, _ )in self.factura.products.items():
             sellRegister = "%s,%s,%s, %.3f\n"%(self.factura.get_dateToFrame(), self.factura.get_timeToFrame(),
